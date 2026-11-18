@@ -1,24 +1,8 @@
 import { useState } from "react";
 import { fetchMe, login, register } from "./api.js";
-
-const CATEGORIES = [
-  {
-    name: "Crypto",
-    description: "Ciphers, encodings and number theory — break the code, find the flag.",
-  },
-  {
-    name: "Web",
-    description: "Broken auth, injection and logic flaws hiding in plain sight.",
-  },
-  {
-    name: "Reverse engineering",
-    description: "Binaries and bytecode — take it apart and see how it works.",
-  },
-  {
-    name: "Misc",
-    description: "Forensics, trivia and everything that doesn't fit the other boxes.",
-  },
-];
+import AdminChallenges from "./components/AdminChallenges.jsx";
+import ChallengeDetail from "./components/ChallengeDetail.jsx";
+import ChallengeList from "./components/ChallengeList.jsx";
 
 function storedUser() {
   try {
@@ -36,6 +20,7 @@ export default function App() {
   const [user, setUser] = useState(storedUser);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedChallengeId, setSelectedChallengeId] = useState(null);
 
   const token =
     typeof localStorage !== "undefined"
@@ -65,6 +50,7 @@ export default function App() {
     localStorage.removeItem("ctf-token");
     localStorage.removeItem("ctf-user");
     setUser(null);
+    setSelectedChallengeId(null);
     setEmail("");
     setPassword("");
     setName("");
@@ -156,18 +142,16 @@ export default function App() {
           Log out
         </button>
       </header>
-      <section>
-        <h2>Challenges</h2>
-        <ul className="categories">
-          {CATEGORIES.map((category) => (
-            <li key={category.name} className="category-card">
-              <h3>{category.name}</h3>
-              <p>{category.description}</p>
-              <p className="muted">No challenges yet.</p>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {selectedChallengeId ? (
+        <ChallengeDetail
+          token={token}
+          challengeId={selectedChallengeId}
+          onBack={() => setSelectedChallengeId(null)}
+        />
+      ) : (
+        <ChallengeList token={token} onSelect={setSelectedChallengeId} />
+      )}
+      {user.role === "admin" && <AdminChallenges token={token} />}
     </main>
   );
 }

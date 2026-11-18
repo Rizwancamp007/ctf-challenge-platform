@@ -43,3 +43,39 @@ export function register(name, email, password) {
 export function fetchMe(token) {
   return request("GET", "/api/auth/me", undefined, token).then((d) => d.user);
 }
+
+export function listChallenges(token, params = {}) {
+  const query = new URLSearchParams(params).toString();
+  return request(
+    "GET",
+    `/api/challenges${query ? `?${query}` : ""}`,
+    undefined,
+    token
+  ).then((d) => d.challenges);
+}
+
+export function getChallenge(id, token) {
+  return request("GET", `/api/challenges/${id}`, undefined, token).then(
+    (d) => d.challenge
+  );
+}
+
+export function createChallenge(data, token) {
+  return request("POST", "/api/challenges", data, token).then(
+    (d) => d.challenge
+  );
+}
+
+export function updateChallenge(id, data, token) {
+  return request("PUT", `/api/challenges/${id}`, data, token).then(
+    (d) => d.challenge
+  );
+}
+
+export function deleteChallenge(id, token) {
+  return request("DELETE", `/api/challenges/${id}`, undefined, token);
+}
+
+export function submitFlag(id, flag, token) {
+  return request("POST", `/api/challenges/${id}/submit`, { flag }, token);
+}
