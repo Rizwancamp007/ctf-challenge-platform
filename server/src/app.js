@@ -1,10 +1,15 @@
 import cors from "cors";
 import express from "express";
 import { createAuthRouter } from "./routes/auth.js";
+import { createChallengesRouter } from "./routes/challenges.js";
+import { createMemoryChallengeStore } from "./store/challenges.js";
+import { createMemorySolveStore } from "./store/solves.js";
 import { createMemoryStore } from "./store/users.js";
 
-export function createApp({ store } = {}) {
+export function createApp({ store, challengeStore, solveStore } = {}) {
   const users = store || createMemoryStore();
+  const challenges = challengeStore || createMemoryChallengeStore();
+  const solves = solveStore || createMemorySolveStore();
   const app = express();
   app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
   app.use(express.json({ limit: "1mb" }));
@@ -18,6 +23,7 @@ export function createApp({ store } = {}) {
   });
 
   app.use("/api/auth", createAuthRouter(users));
+  app.use("/api/challenges", createChallengesRouter({ challenges, solves }));
 
   // Unknown paths still answer JSON, so the client never gets an HTML
   // error page it can't show.
