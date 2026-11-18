@@ -52,5 +52,14 @@ environment variables — never in the repo.
 - `POST /api/auth/register` — create a player account
 - `POST /api/auth/login` — log in, returns a JWT
 - `GET /api/auth/me` — the logged-in account
+- `GET /api/challenges` — list visible challenges (optional `?category=` and `?difficulty=` filters; admins also see hidden ones)
+- `GET /api/challenges/:id` — one challenge
+- `POST /api/challenges/:id/submit` — submit a flag (10 guesses per minute per solver)
+- `POST /api/challenges` — create a challenge (admin only)
+- `PUT /api/challenges/:id` — update a challenge, including rotating its flag (admin only)
+- `DELETE /api/challenges/:id` — delete a challenge and its solves (admin only)
+
+Flags are stored as salted hashes, never in plain text, and never sent
+to the client. A challenge counts once per solver.
 
 Full API and deploy guides are kept with the project docs.
