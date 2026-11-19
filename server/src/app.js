@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { createAuthRouter } from "./routes/auth.js";
 import { createChallengesRouter } from "./routes/challenges.js";
+import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createMemoryChallengeStore } from "./store/challenges.js";
 import { createMemorySolveStore } from "./store/solves.js";
 import { createMemoryStore } from "./store/users.js";
@@ -24,6 +25,7 @@ export function createApp({ store, challengeStore, solveStore } = {}) {
 
   app.use("/api/auth", createAuthRouter(users));
   app.use("/api/challenges", createChallengesRouter({ challenges, solves }));
+  app.use("/api/leaderboard", createLeaderboardRouter({ solves, store: users }));
 
   // Unknown paths still answer JSON, so the client never gets an HTML
   // error page it can't show.

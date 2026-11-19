@@ -6,7 +6,7 @@ export function createMemorySolveStore() {
   return {
     // A second solve for the same challenge and user is a no-op — the
     // first one stands, so a challenge can only ever count once.
-    async recordSolve({ challengeId, userId, teamId, points }) {
+    async recordSolve({ challengeId, userId, teamId, points, firstBlood, bonus }) {
       const existing = solves.find(
         (s) =>
           String(s.challengeId) === String(challengeId) &&
@@ -19,6 +19,8 @@ export function createMemorySolveStore() {
         userId: String(userId),
         teamId: teamId || null,
         points,
+        firstBlood: !!firstBlood,
+        bonus: bonus || 0,
         createdAt: new Date(),
       };
       solves.push(solve);
@@ -32,6 +34,9 @@ export function createMemorySolveStore() {
             String(s.userId) === String(userId)
         ) || null
       );
+    },
+    async listSolves() {
+      return [...solves];
     },
     async listSolvesForChallenge(challengeId) {
       return solves.filter((s) => String(s.challengeId) === String(challengeId));
@@ -65,7 +70,7 @@ export function createMemorySolveStore() {
 
 export function createMongooseSolveStore(Solve, Submission) {
   return {
-    async recordSolve({ challengeId, userId, teamId, points }) {
+    async recordSolve({ challengeId, userId, teamId, points, firstBlood, bonus }) {
       const existing = await Solve.findOne({ challenge: challengeId, user: userId }).lean();
       if (existing) return existing;
       const solve = await Solve.create({
@@ -73,12 +78,17 @@ export function createMongooseSolveStore(Solve, Submission) {
         user: userId,
         teamId: teamId || null,
         points,
+        firstBlood: !!firstBlood,
+        bonus: bonus || 0,
       });
       return solve.toObject();
     },
     async findSolve(challengeId, userId) {
       const solve = await Solve.findOne({ challenge: challengeId, user: userId }).lean();
       return solve || null;
+    },
+    async listSolves() {
+      return Solve.find({}).sort({ createdAt: 1 }).lean();
     },
     async listSolvesForChallenge(challengeId) {
       return Solve.find({ challenge: challengeId }).sort({ createdAt: 1 }).lean();

@@ -3,13 +3,17 @@ import mongoose from "mongoose";
 // One row per team solve — a challenge counts once per team, whoever on
 // the team submits the flag. Until teams exist, each player solves alone,
 // so the user is the scope. points is what the solve was worth at the
-// time, so later scoring changes never rewrite history.
+// time, so later scoring changes never rewrite history. firstBlood marks
+// the first solve of a challenge, and bonus is the first-blood bonus
+// earned on top of points.
 const solveSchema = new mongoose.Schema(
   {
     challenge: { type: mongoose.Schema.Types.ObjectId, ref: "Challenge", required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     teamId: { type: String, default: null },
     points: { type: Number, required: true },
+    firstBlood: { type: Boolean, default: false },
+    bonus: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

@@ -4,6 +4,7 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 import { CATEGORIES, DIFFICULTIES } from "../models/Challenge.js";
 import { hashFlag, verifyFlag } from "../services/flags.js";
 import { createGuessLimiter } from "../services/guessLimiter.js";
+import { challengeValue, pointsForSolve } from "../services/scoring.js";
 import { publicChallenge } from "../store/challenges.js";
 
 // Checks one challenge payload and returns either the clean fields or a
@@ -106,8 +107,16 @@ export function createChallengesRouter({ challenges, solves, limiter } = {}) {
   async function withSolveInfo(req, challenge) {
     const pub = publicChallenge(challenge);
     const solve = await solves.findSolve(pub.id, req.user.id);
+    const solveCount = await solves.countSolves(pub.id);
     pub.solved = !!solve;
-    pub.solveCount = await solves.countSolves(pub.id);
+    pub.solveCount = solveCount;
+    // What the challenge is worth right now — the value falls as more
+    // solvers crack it, so the list always shows the live price.
+    pub.currentPoints = challengeValue({
+      basePoints: challenge.points,
+      solveCount,
+    });
+    pub.firstBloodAvailable = solveCount === 0;
     return pub;
   }
 
@@ -198,7 +207,9 @@ export function createChallengesRouter({ challenges, solves, limiter } = {}) {
 
   // Submit a flag. The flag is compared against the stored hash in
   // constant time, guesses are capped per solver, and a challenge can
-  // only be solved once — a second correct guess just says so.
+  // only be solved once — a second correct guess just says so. A solve
+  // is worth the challenge's current value, which falls as more solvers
+  // crack it, plus a first-blood bonus for the very first solve.
   router.post(
     "/:id/submit",
     requireAuth,
@@ -231,23 +242,33 @@ export function createChallengesRouter({ challenges, solves, limiter } = {}) {
       }
       await solves.recordSubmission({ challengeId, userId: req.user.id, correct });
       if (!correct) {
+        guessLimiter.recordWrong(`${scope}:${challengeId}`);
         return res.json({
           correct: false,
           message: "That's not the flag — keep digging",
           remainingGuesses: limit.remaining,
         });
       }
+      guessLimiter.recordCorrect(`${scope}:${challengeId}`);
+      const solveCount = await solves.countSolves(challengeId);
+      const award = pointsForSolve({ basePoints: challenge.points, solveCount });
       const solve = await solves.recordSolve({
         challengeId,
         userId: req.user.id,
         teamId: req.user.teamId || null,
-        points: challenge.points,
+        points: award.value,
+        firstBlood: award.firstBlood,
+        bonus: award.bonus,
       });
       return res.json({
         correct: true,
         solved: true,
         points: solve.points,
-        message: "Correct — nice work",
+        firstBlood: solve.firstBlood,
+        bonus: solve.bonus,
+        message: solve.firstBlood
+          ? "Correct — first blood! Nice work"
+          : "Correct — nice work",
       });
     })
   );
