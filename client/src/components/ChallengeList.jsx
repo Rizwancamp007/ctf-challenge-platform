@@ -86,7 +86,9 @@ export default function ChallengeList({ token, onSelect }) {
                 <span className="badge badge-category">
                   {CATEGORY_LABELS[challenge.category] || challenge.category}
                 </span>
-                <span className="points">{challenge.points} pts</span>
+                <span className="points">
+                  {challenge.currentPoints ?? challenge.points} pts
+                </span>
                 {challenge.solved && <span className="solved-mark">Solved ✓</span>}
               </span>
               <span className="challenge-solves muted">

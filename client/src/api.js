@@ -79,3 +79,9 @@ export function deleteChallenge(id, token) {
 export function submitFlag(id, flag, token) {
   return request("POST", `/api/challenges/${id}/submit`, { flag }, token);
 }
+
+export function fetchLeaderboard(token) {
+  return request("GET", "/api/leaderboard", undefined, token).then(
+    (d) => d.leaderboard
+  );
+}

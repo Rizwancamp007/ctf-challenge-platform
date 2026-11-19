@@ -79,12 +79,17 @@ export default function ChallengeDetail({ token, challengeId, onBack }) {
         <span className="badge badge-category">
           {CATEGORY_LABELS[challenge.category] || challenge.category}
         </span>{" "}
-        <span className="points">{challenge.points} pts</span>{" "}
+        <span className="points">
+          {challenge.currentPoints ?? challenge.points} pts
+        </span>{" "}
         <span className="muted">
           {challenge.solveCount === 1 ? "1 solve" : `${challenge.solveCount} solves`}
         </span>
       </p>
       {challenge.solved && <p className="solved-banner">Solved ✓ — nice work</p>}
+      {!challenge.solved && challenge.firstBloodAvailable && (
+        <p className="muted">First blood is still up for grabs — worth a bonus.</p>
+      )}
       {challenge.description && <p>{challenge.description}</p>}
       {challenge.files && challenge.files.length > 0 && (
         <div>
@@ -123,6 +128,9 @@ export default function ChallengeDetail({ token, challengeId, onBack }) {
           </div>
           {result && (
             <p className={result.correct ? "success" : "error"}>{result.message}</p>
+          )}
+          {result && result.correct && result.firstBlood && (
+            <p className="success">First blood! +{result.bonus} bonus points</p>
           )}
           {result && !result.correct && typeof result.remainingGuesses === "number" && (
             <p className="muted">{result.remainingGuesses} guesses left before a short wait</p>
