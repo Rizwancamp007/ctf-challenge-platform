@@ -46,6 +46,16 @@ Set the `DEMO_*` variables in your local `.env` (or in deployment config)
 and run `npm run seed` from `server/`. Demo credentials live only in
 environment variables — never in the repo.
 
+## Scoring
+
+A challenge is worth its full base points to the first solver, then falls
+towards a floor (a quarter of its base points, never less than 10) as more
+solvers crack it, so early solves are worth more. The first solver also
+earns a 25-point first-blood bonus. Totals are recomputed from the solve
+records, and ties break on who reached the total first. Flag guesses are
+capped at 10 per minute per solver, and five wrong guesses in a row earn
+a one-minute cooldown.
+
 ## API
 
 - `GET /health` — server status
@@ -58,6 +68,7 @@ environment variables — never in the repo.
 - `POST /api/challenges` — create a challenge (admin only)
 - `PUT /api/challenges/:id` — update a challenge, including rotating its flag (admin only)
 - `DELETE /api/challenges/:id` — delete a challenge and its solves (admin only)
+- `GET /api/leaderboard` — ranked standings (points, then earliest last solve)
 
 Flags are stored as salted hashes, never in plain text, and never sent
 to the client. A challenge counts once per solver.
