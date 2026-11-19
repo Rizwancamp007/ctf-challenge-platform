@@ -428,7 +428,8 @@ describe("flag submission", () => {
     assert.equal(created.status, 201);
     const id = created.body.challenge.id;
 
-    for (let i = 0; i < 10; i++) {
+    // Five wrong guesses in a row are fine — the sixth hits the cooldown.
+    for (let i = 0; i < 5; i++) {
       const attempt = await req(
         "POST",
         `/api/challenges/${id}/submit`,
@@ -438,14 +439,14 @@ describe("flag submission", () => {
       assert.equal(attempt.status, 200);
       assert.equal(attempt.body.correct, false);
     }
-    const eleventh = await req(
+    const sixth = await req(
       "POST",
       `/api/challenges/${id}/submit`,
-      { flag: "flag{wrong_guess_10}" },
+      { flag: "flag{wrong_guess_5}" },
       otherToken
     );
-    assert.equal(eleventh.status, 429);
-    assert.ok(eleventh.body.retryAfterSeconds > 0);
+    assert.equal(sixth.status, 429);
+    assert.ok(sixth.body.retryAfterSeconds > 0);
   });
 });
 
