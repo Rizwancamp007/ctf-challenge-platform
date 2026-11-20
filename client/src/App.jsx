@@ -3,6 +3,7 @@ import { fetchMe, login, register } from "./api.js";
 import AdminChallenges from "./components/AdminChallenges.jsx";
 import ChallengeDetail from "./components/ChallengeDetail.jsx";
 import ChallengeList from "./components/ChallengeList.jsx";
+import TeamPage from "./components/TeamPage.jsx";
 
 function storedUser() {
   try {
@@ -21,6 +22,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedChallengeId, setSelectedChallengeId] = useState(null);
+  const [view, setView] = useState("challenges");
 
   const token =
     typeof localStorage !== "undefined"
@@ -51,6 +53,7 @@ export default function App() {
     localStorage.removeItem("ctf-user");
     setUser(null);
     setSelectedChallengeId(null);
+    setView("challenges");
     setEmail("");
     setPassword("");
     setName("");
@@ -138,11 +141,35 @@ export default function App() {
             Signed in as {user.name} ({user.role})
           </p>
         </div>
-        <button type="button" onClick={handleLogout}>
-          Log out
-        </button>
+        <nav>
+          <button
+            type="button"
+            onClick={() => {
+              setView("challenges");
+              setSelectedChallengeId(null);
+            }}
+            disabled={view === "challenges"}
+          >
+            Challenges
+          </button>{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setView("team");
+              setSelectedChallengeId(null);
+            }}
+            disabled={view === "team"}
+          >
+            Team
+          </button>{" "}
+          <button type="button" onClick={handleLogout}>
+            Log out
+          </button>
+        </nav>
       </header>
-      {selectedChallengeId ? (
+      {view === "team" ? (
+        <TeamPage token={token} user={user} onUserChange={setUser} />
+      ) : selectedChallengeId ? (
         <ChallengeDetail
           token={token}
           challengeId={selectedChallengeId}
@@ -151,7 +178,9 @@ export default function App() {
       ) : (
         <ChallengeList token={token} onSelect={setSelectedChallengeId} />
       )}
-      {user.role === "admin" && <AdminChallenges token={token} />}
+      {view === "challenges" && user.role === "admin" && (
+        <AdminChallenges token={token} />
+      )}
     </main>
   );
 }

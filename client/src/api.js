@@ -85,3 +85,59 @@ export function fetchLeaderboard(token) {
     (d) => d.leaderboard
   );
 }
+
+export function createTeam(name, token) {
+  return request("POST", "/api/teams", { name }, token).then((d) => d.team);
+}
+
+export function joinTeam(inviteCode, token) {
+  return request("POST", "/api/teams/join", { inviteCode }, token).then(
+    (d) => d.team
+  );
+}
+
+export function fetchMyTeam(token) {
+  return request("GET", "/api/teams/me", undefined, token).then((d) => d.team);
+}
+
+export function fetchTeam(id, token) {
+  return request("GET", `/api/teams/${id}`, undefined, token).then(
+    (d) => d.team
+  );
+}
+
+export function fetchTeams(token) {
+  return request("GET", "/api/teams", undefined, token).then((d) => d.teams);
+}
+
+export function leaveTeam(token) {
+  return request("POST", "/api/teams/leave", {}, token);
+}
+
+export function kickMember(teamId, userId, token) {
+  return request("POST", `/api/teams/${teamId}/kick`, { userId }, token).then(
+    (d) => d.team
+  );
+}
+
+export function transferCaptain(teamId, userId, token) {
+  return request(
+    "POST",
+    `/api/teams/${teamId}/transfer`,
+    { userId },
+    token
+  ).then((d) => d.team);
+}
+
+export function regenerateInviteCode(teamId, token) {
+  return request(
+    "POST",
+    `/api/teams/${teamId}/regenerate-code`,
+    {},
+    token
+  ).then((d) => d.team);
+}
+
+export function disbandTeam(teamId, token) {
+  return request("DELETE", `/api/teams/${teamId}`, undefined, token);
+}
