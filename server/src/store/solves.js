@@ -4,14 +4,15 @@ export function createMemorySolveStore() {
   const solves = [];
   const submissions = [];
   return {
-    // A second solve for the same challenge and user is a no-op — the
-    // first one stands, so a challenge can only ever count once.
+    // A solve counts once per team, whoever on the team submits the
+    // flag. A player without a team solves alone, so the scope is the
+    // team when there is one, otherwise the player.
     async recordSolve({ challengeId, userId, teamId, points, firstBlood, bonus }) {
-      const existing = solves.find(
-        (s) =>
-          String(s.challengeId) === String(challengeId) &&
-          String(s.userId) === String(userId)
-      );
+      const existing = solves.find((s) => {
+        if (String(s.challengeId) !== String(challengeId)) return false;
+        if (teamId) return String(s.teamId || "") === String(teamId);
+        return String(s.userId) === String(userId) && !s.teamId;
+      });
       if (existing) return existing;
       const solve = {
         id: randomUUID(),
@@ -26,13 +27,13 @@ export function createMemorySolveStore() {
       solves.push(solve);
       return solve;
     },
-    async findSolve(challengeId, userId) {
+    async findSolve(challengeId, userId, teamId) {
       return (
-        solves.find(
-          (s) =>
-            String(s.challengeId) === String(challengeId) &&
-            String(s.userId) === String(userId)
-        ) || null
+        solves.find((s) => {
+          if (String(s.challengeId) !== String(challengeId)) return false;
+          if (teamId) return String(s.teamId || "") === String(teamId);
+          return String(s.userId) === String(userId) && !s.teamId;
+        }) || null
       );
     },
     async listSolves() {
@@ -71,7 +72,9 @@ export function createMemorySolveStore() {
 export function createMongooseSolveStore(Solve, Submission) {
   return {
     async recordSolve({ challengeId, userId, teamId, points, firstBlood, bonus }) {
-      const existing = await Solve.findOne({ challenge: challengeId, user: userId }).lean();
+      const existing = teamId
+        ? await Solve.findOne({ challenge: challengeId, teamId }).lean()
+        : await Solve.findOne({ challenge: challengeId, user: userId, teamId: null }).lean();
       if (existing) return existing;
       const solve = await Solve.create({
         challenge: challengeId,
@@ -83,8 +86,10 @@ export function createMongooseSolveStore(Solve, Submission) {
       });
       return solve.toObject();
     },
-    async findSolve(challengeId, userId) {
-      const solve = await Solve.findOne({ challenge: challengeId, user: userId }).lean();
+    async findSolve(challengeId, userId, teamId) {
+      const solve = teamId
+        ? await Solve.findOne({ challenge: challengeId, teamId }).lean()
+        : await Solve.findOne({ challenge: challengeId, user: userId, teamId: null }).lean();
       return solve || null;
     },
     async listSolves() {

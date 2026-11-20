@@ -100,13 +100,22 @@ function validateChallengeInput(body, { flagRequired }) {
   return { data, flagHash, errors };
 }
 
-export function createChallengesRouter({ challenges, solves, limiter } = {}) {
+export function createChallengesRouter({ challenges, solves, teamStore, limiter } = {}) {
   const router = express.Router();
   const guessLimiter = limiter || createGuessLimiter();
 
+  // The team a player belongs to, if any — the team record is the source
+  // of truth, not the login token, so joining a team takes effect at once.
+  async function teamIdFor(userId) {
+    if (!teamStore) return null;
+    const team = await teamStore.findByMember(userId);
+    return team ? String(team.id ?? team._id) : null;
+  }
+
   async function withSolveInfo(req, challenge) {
     const pub = publicChallenge(challenge);
-    const solve = await solves.findSolve(pub.id, req.user.id);
+    const teamId = await teamIdFor(req.user.id);
+    const solve = await solves.findSolve(pub.id, req.user.id, teamId);
     const solveCount = await solves.countSolves(pub.id);
     pub.solved = !!solve;
     pub.solveCount = solveCount;
@@ -223,9 +232,13 @@ export function createChallengesRouter({ challenges, solves, limiter } = {}) {
         return res.status(400).json({ message: "Enter a flag to submit" });
       }
       const challengeId = String(challenge.id ?? challenge._id);
-      const scope = req.user.teamId || req.user.id;
+      // Guesses are capped per team — a team shares one guess budget, so
+      // one player can't burn through it for everyone, and nobody can
+      // dodge the cap by switching accounts on the same team.
+      const teamId = await teamIdFor(req.user.id);
+      const scope = teamId || req.user.id;
       const correct = verifyFlag(flag, challenge.flagHash);
-      const existing = await solves.findSolve(challengeId, req.user.id);
+      const existing = await solves.findSolve(challengeId, req.user.id, teamId);
       if (correct && existing) {
         return res.json({
           correct: true,
@@ -255,7 +268,7 @@ export function createChallengesRouter({ challenges, solves, limiter } = {}) {
       const solve = await solves.recordSolve({
         challengeId,
         userId: req.user.id,
-        teamId: req.user.teamId || null,
+        teamId: teamId || null,
         points: award.value,
         firstBlood: award.firstBlood,
         bonus: award.bonus,

@@ -4,9 +4,11 @@ import { createApp } from "./app.js";
 import { Challenge } from "./models/Challenge.js";
 import { Solve } from "./models/Solve.js";
 import { Submission } from "./models/Submission.js";
+import { Team } from "./models/Team.js";
 import { User } from "./models/User.js";
 import { createMemoryChallengeStore, createMongooseChallengeStore } from "./store/challenges.js";
 import { createMemorySolveStore, createMongooseSolveStore } from "./store/solves.js";
+import { createMemoryTeamStore, createMongooseTeamStore } from "./store/teams.js";
 import { createMemoryStore, createMongooseStore } from "./store/users.js";
 
 dotenv.config();
@@ -17,16 +19,18 @@ async function main() {
   let store = createMemoryStore();
   let challengeStore = createMemoryChallengeStore();
   let solveStore = createMemorySolveStore();
+  let teamStore = createMemoryTeamStore();
   if (process.env.MONGODB_URI) {
     await mongoose.connect(process.env.MONGODB_URI);
     store = createMongooseStore(User);
     challengeStore = createMongooseChallengeStore(Challenge);
     solveStore = createMongooseSolveStore(Solve, Submission);
+    teamStore = createMongooseTeamStore(Team);
     console.log("Connected to MongoDB");
   } else {
     console.log("No MONGODB_URI set, using in-memory data (resets on restart)");
   }
-  const app = createApp({ store, challengeStore, solveStore });
+  const app = createApp({ store, challengeStore, solveStore, teamStore });
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

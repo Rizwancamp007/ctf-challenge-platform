@@ -8,6 +8,7 @@ export function publicUser(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    teamId: user.teamId || null,
   };
 }
 
@@ -17,7 +18,7 @@ export function createMemoryStore() {
   const byEmail = new Map();
   return {
     async create({ name, email, passwordHash, role }) {
-      const user = { id: randomUUID(), name, email, passwordHash, role };
+      const user = { id: randomUUID(), name, email, passwordHash, role, teamId: null };
       byId.set(user.id, user);
       byEmail.set(email, user);
       return user;
@@ -27,6 +28,12 @@ export function createMemoryStore() {
     },
     async findById(id) {
       return byId.get(String(id)) || null;
+    },
+    async update(id, patch) {
+      const user = byId.get(String(id));
+      if (!user) return null;
+      Object.assign(user, patch);
+      return user;
     },
   };
 }
@@ -43,6 +50,13 @@ export function createMongooseStore(User) {
     },
     async findById(id) {
       const user = await User.findById(id).lean();
+      return user || null;
+    },
+    async update(id, patch) {
+      const user = await User.findByIdAndUpdate(id, patch, {
+        new: true,
+        runValidators: true,
+      }).lean();
       return user || null;
     },
   };

@@ -20,4 +20,12 @@ const solveSchema = new mongoose.Schema(
 
 solveSchema.index({ challenge: 1, user: 1 }, { unique: true });
 
+// One solve per team per challenge, whoever on the team submits the
+// flag. The partial index only covers team solves — solo solves have a
+// null teamId and keep the per-player index above.
+solveSchema.index(
+  { challenge: 1, teamId: 1 },
+  { unique: true, partialFilterExpression: { teamId: { $type: "string" } } }
+);
+
 export const Solve = mongoose.model("Solve", solveSchema);

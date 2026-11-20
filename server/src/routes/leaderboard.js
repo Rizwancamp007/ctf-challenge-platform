@@ -4,8 +4,8 @@ import { requireAuth } from "../middleware/auth.js";
 import { computeStandings } from "../services/scoreboard.js";
 
 // Ranked standings, recomputed from the solve records on every read.
-// Teams arrive with the team work — until then each player stands alone.
-export function createLeaderboardRouter({ solves, store }) {
+// A team stands under its own name; a player without a team stands alone.
+export function createLeaderboardRouter({ solves, store, teamStore }) {
   const router = express.Router();
 
   router.get(
@@ -17,9 +17,14 @@ export function createLeaderboardRouter({ solves, store }) {
       const out = [];
       for (const entry of standings) {
         let name = "Player";
-        if (entry.solverId) {
+        if (teamStore) {
+          const team = await teamStore.findById(entry.solverId);
+          if (team) name = team.name;
+        }
+        if (name === "Player" && entry.solverId) {
           const user = await store.findById(entry.solverId);
           if (user) name = user.name;
+          else name = "Disbanded team";
         }
         out.push({ ...entry, name });
       }
