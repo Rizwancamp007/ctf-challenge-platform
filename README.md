@@ -46,6 +46,16 @@ Set the `DEMO_*` variables in your local `.env` (or in deployment config)
 and run `npm run seed` from `server/`. Demo credentials live only in
 environment variables — never in the repo.
 
+## Teams
+
+Players solve in teams of up to four. One player creates a team and shares
+its invite code; the rest join with that code. A challenge counts once per
+team, whoever on the team submits the flag, and flag guesses share one
+budget per team. The captain manages the roster — remove a member, hand
+over the captaincy, or get a fresh invite code. When the captain leaves,
+the longest-standing member takes over; when the last member leaves, the
+team is disbanded. Admins can list every team and disband any of them.
+
 ## Scoring
 
 A challenge is worth its full base points to the first solver, then falls
@@ -68,6 +78,16 @@ a one-minute cooldown.
 - `POST /api/challenges` — create a challenge (admin only)
 - `PUT /api/challenges/:id` — update a challenge, including rotating its flag (admin only)
 - `DELETE /api/challenges/:id` — delete a challenge and its solves (admin only)
+- `POST /api/teams` — create a team (you become captain)
+- `POST /api/teams/join` — join a team with its invite code
+- `GET /api/teams/me` — your team: members, solves and score
+- `GET /api/teams/:id` — one team's profile
+- `GET /api/teams` — every team (admin only)
+- `POST /api/teams/leave` — leave your team
+- `POST /api/teams/:id/kick` — remove a member (captain only)
+- `POST /api/teams/:id/transfer` — hand over the captaincy (captain only)
+- `POST /api/teams/:id/regenerate-code` — get a fresh invite code (captain only)
+- `DELETE /api/teams/:id` — disband a team (captain or admin)
 - `GET /api/leaderboard` — ranked standings (points, then earliest last solve)
 
 Flags are stored as salted hashes, never in plain text, and never sent
