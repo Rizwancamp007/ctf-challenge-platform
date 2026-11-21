@@ -81,9 +81,25 @@ export function submitFlag(id, flag, token) {
 }
 
 export function fetchLeaderboard(token) {
-  return request("GET", "/api/leaderboard", undefined, token).then(
-    (d) => d.leaderboard
+  return request("GET", "/api/leaderboard", undefined, token);
+}
+
+export function fetchLeaderboardFeed(token) {
+  return request("GET", "/api/leaderboard/feed", undefined, token).then(
+    (d) => d.events
   );
+}
+
+export function fetchLeaderboardEntry(id, token) {
+  return request("GET", `/api/leaderboard/${id}`, undefined, token);
+}
+
+export function freezeLeaderboard(token) {
+  return request("POST", "/api/leaderboard/freeze", {}, token);
+}
+
+export function unfreezeLeaderboard(token) {
+  return request("POST", "/api/leaderboard/unfreeze", {}, token);
 }
 
 export function createTeam(name, token) {

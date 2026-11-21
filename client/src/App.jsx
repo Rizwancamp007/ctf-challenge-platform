@@ -3,6 +3,7 @@ import { fetchMe, login, register } from "./api.js";
 import AdminChallenges from "./components/AdminChallenges.jsx";
 import ChallengeDetail from "./components/ChallengeDetail.jsx";
 import ChallengeList from "./components/ChallengeList.jsx";
+import LeaderboardPage from "./components/LeaderboardPage.jsx";
 import TeamPage from "./components/TeamPage.jsx";
 
 function storedUser() {
@@ -162,6 +163,16 @@ export default function App() {
           >
             Team
           </button>{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setView("leaderboard");
+              setSelectedChallengeId(null);
+            }}
+            disabled={view === "leaderboard"}
+          >
+            Leaderboard
+          </button>{" "}
           <button type="button" onClick={handleLogout}>
             Log out
           </button>
@@ -169,6 +180,8 @@ export default function App() {
       </header>
       {view === "team" ? (
         <TeamPage token={token} user={user} onUserChange={setUser} />
+      ) : view === "leaderboard" ? (
+        <LeaderboardPage token={token} user={user} />
       ) : selectedChallengeId ? (
         <ChallengeDetail
           token={token}
