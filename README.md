@@ -66,6 +66,21 @@ records, and ties break on who reached the total first. Flag guesses are
 capped at 10 per minute per solver, and five wrong guesses in a row earn
 a one-minute cooldown.
 
+## Leaderboard and live updates
+
+The leaderboard ranks teams by points, then by who reached the total
+first, and shows where each team's points came from — a breakdown per
+category — plus a per-team solve timeline. Solves show up on the board as
+they happen: the API keeps a live feed of solves, first bloods and
+position changes, and pushes it to the scoreboard page over a socket, so
+the board moves without refreshing. If the live connection drops, the
+page falls back to refreshing every 30 seconds.
+
+Admins can freeze the scoreboard while the event is still running: the
+public board holds at the standings from the moment of the freeze, while
+admins keep seeing the live board. Unfreezing shows the live board to
+everyone again.
+
 ## API
 
 - `GET /health` — server status
@@ -88,7 +103,11 @@ a one-minute cooldown.
 - `POST /api/teams/:id/transfer` — hand over the captaincy (captain only)
 - `POST /api/teams/:id/regenerate-code` — get a fresh invite code (captain only)
 - `DELETE /api/teams/:id` — disband a team (captain or admin)
-- `GET /api/leaderboard` — ranked standings (points, then earliest last solve)
+- `GET /api/leaderboard` — ranked standings (points, then earliest last solve), with a per-team category breakdown; `frozen` says whether the public board is frozen
+- `GET /api/leaderboard/feed` — the live feed: solves, first bloods, position changes and freezes
+- `GET /api/leaderboard/:id` — one solver's rank, breakdown and solve timeline
+- `POST /api/leaderboard/freeze` — freeze the public board (admin only)
+- `POST /api/leaderboard/unfreeze` — show the live board again (admin only)
 
 Flags are stored as salted hashes, never in plain text, and never sent
 to the client. A challenge counts once per solver.
