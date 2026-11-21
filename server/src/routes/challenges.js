@@ -4,6 +4,10 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 import { CATEGORIES, DIFFICULTIES } from "../models/Challenge.js";
 import { hashFlag, verifyFlag } from "../services/flags.js";
 import { createGuessLimiter } from "../services/guessLimiter.js";
+import {
+  describeStandings,
+  rankMoves,
+} from "../services/scoreboard.js";
 import { challengeValue, pointsForSolve } from "../services/scoring.js";
 import { publicChallenge } from "../store/challenges.js";
 
@@ -100,7 +104,7 @@ function validateChallengeInput(body, { flagRequired }) {
   return { data, flagHash, errors };
 }
 
-export function createChallengesRouter({ challenges, solves, teamStore, limiter } = {}) {
+export function createChallengesRouter({ challenges, solves, teamStore, limiter, store, live } = {}) {
   const router = express.Router();
   const guessLimiter = limiter || createGuessLimiter();
 
@@ -265,6 +269,10 @@ export function createChallengesRouter({ challenges, solves, teamStore, limiter 
       guessLimiter.recordCorrect(`${scope}:${challengeId}`);
       const solveCount = await solves.countSolves(challengeId);
       const award = pointsForSolve({ basePoints: challenge.points, solveCount });
+      // The board before this solve, so the live feed can say who moved.
+      const describe = (list) =>
+        describeStandings(list, { teamStore, userStore: store, challengeStore: challenges });
+      const before = live ? await describe(await solves.listSolves()) : null;
       const solve = await solves.recordSolve({
         challengeId,
         userId: req.user.id,
@@ -273,6 +281,43 @@ export function createChallengesRouter({ challenges, solves, teamStore, limiter 
         firstBlood: award.firstBlood,
         bonus: award.bonus,
       });
+      if (live) {
+        let solverName = "Player";
+        if (teamId && teamStore) {
+          const team = await teamStore.findById(teamId);
+          if (team) solverName = team.name;
+        }
+        if (solverName === "Player" && store) {
+          const user = await store.findById(req.user.id);
+          if (user) solverName = user.name;
+        }
+        live.record({
+          type: "solve",
+          solverId: teamId || req.user.id,
+          solverName,
+          challengeId,
+          challengeTitle: challenge.title,
+          category: challenge.category,
+          points: solve.points,
+          bonus: solve.bonus,
+          firstBlood: solve.firstBlood,
+          createdAt: solve.createdAt,
+        });
+        const after = await describe(await solves.listSolves());
+        const moves = rankMoves(before, after);
+        if (moves.length) {
+          live.record({
+            type: "leaderboard",
+            moves,
+            standings: after.map((e) => ({
+              rank: e.rank,
+              solverId: e.solverId,
+              name: e.name,
+              points: e.points,
+            })),
+          });
+        }
+      }
       return res.json({
         correct: true,
         solved: true,

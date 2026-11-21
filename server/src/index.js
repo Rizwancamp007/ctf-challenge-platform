@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
+import { createServer } from "node:http";
 import mongoose from "mongoose";
 import { createApp } from "./app.js";
+import { attachLiveSocket } from "./liveSocket.js";
 import { Challenge } from "./models/Challenge.js";
 import { Solve } from "./models/Solve.js";
 import { Submission } from "./models/Submission.js";
@@ -31,7 +33,11 @@ async function main() {
     console.log("No MONGODB_URI set, using in-memory data (resets on restart)");
   }
   const app = createApp({ store, challengeStore, solveStore, teamStore });
-  app.listen(PORT, () => {
+  const httpServer = createServer(app);
+  attachLiveSocket(httpServer, app.locals.liveFeed, {
+    corsOrigin: process.env.CLIENT_URL || "http://localhost:5173",
+  });
+  httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
