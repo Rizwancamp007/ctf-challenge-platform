@@ -27,7 +27,9 @@ cd client && npm install && npm run dev
 ## Environment
 
 Copy `server/.env.example` to `server/.env` and fill in your own values.
-Never commit the real `.env`.
+Never commit the real `.env`. For `docker compose`, copy `.env.example`
+at the repo root to `.env` as well — it holds the flags for the bundled
+containerised challenges.
 
 | Variable | What it is |
 | --- | --- |
@@ -37,6 +39,7 @@ Never commit the real `.env`.
 | `JWT_EXPIRES_IN` | How long a login token lasts (default 7d) |
 | `CLIENT_URL` | Client origin allowed by CORS |
 | `FLAG_SALT` | Salt mixed into challenge flag hashes |
+| `WEB_HIDDEN_FLAG` / `WEB_SOURCE_LEAK_FLAG` | Flags for the bundled containerised web challenges (compose `.env` only) |
 | `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` | Demo admin account, used by `npm run seed` |
 | `DEMO_PLAYER_EMAIL` / `DEMO_PLAYER_PASSWORD` | Demo player account, used by `npm run seed` |
 
@@ -55,6 +58,38 @@ budget per team. The captain manages the roster — remove a member, hand
 over the captaincy, or get a fresh invite code. When the captain leaves,
 the longest-standing member takes over; when the last member leaves, the
 team is disbanded. Admins can list every team and disband any of them.
+
+## Hints
+
+Admins can add hints to any challenge, each with a point cost. A hint is
+locked until a team unlocks it — locked hints show their cost and nothing
+else. Unlocking is per team: one teammate unlocking it opens it for the
+whole team, and nobody pays twice for the same hint. The cost comes off
+the team's score at the moment of unlocking, so a hint is a trade: a
+nudge now against a few places on the board. A hint can only be bought
+with points the team has already earned — a team with no points yet has
+to solve something first.
+
+## Containerised web challenges
+
+Web challenges can run as their own services. Two are bundled in
+`docker/`:
+
+- `web-hidden-flag` (easy, port 8081) — the flag is a file on the site;
+  `robots.txt` points at the folder crawlers are told not to look in.
+- `web-source-leak` (medium, port 8082) — the flag is base64-encoded in a
+  comment in the site's JavaScript.
+
+Each one is a small Node server with a `GET /health` endpoint, and the
+flag arrives through the `FLAG` environment variable when the container
+starts — it is never baked into the image. `docker compose up --build`
+starts both next to the API and the client; set `WEB_HIDDEN_FLAG` and
+`WEB_SOURCE_LEAK_FLAG` in the compose `.env` (see `.env.example`). As an
+admin, create a web challenge and set its container URL to
+`http://localhost:8081` or `http://localhost:8082`; the admin container
+status view checks each service's `/health` endpoint and shows whether
+it is up. Web challenges run as shared instances — one container per
+challenge, not one per team.
 
 ## Scoring
 
@@ -93,7 +128,12 @@ everyone again.
 - `POST /api/challenges` — create a challenge (admin only)
 - `PUT /api/challenges/:id` — update a challenge, including rotating its flag (admin only)
 - `DELETE /api/challenges/:id` — delete a challenge and its solves (admin only)
-- `POST /api/teams` — create a team (you become captain)
+- `GET /api/challenges/:id/hints` — hints for a challenge (locked hints show their cost, not their text)
+- `POST /api/challenges/:id/hints` — add a hint to a challenge (admin only)
+- `PUT /api/challenges/:id/hints/:hintId` — edit a hint (admin only)
+- `DELETE /api/challenges/:id/hints/:hintId` — delete a hint (admin only)
+- `POST /api/challenges/:id/hints/:hintId/unlock` — unlock a hint for your team, charged against your score
+- `GET /api/containers` — container status for every challenge service (admin only)
 - `POST /api/teams/join` — join a team with its invite code
 - `GET /api/teams/me` — your team: members, solves and score
 - `GET /api/teams/:id` — one team's profile
