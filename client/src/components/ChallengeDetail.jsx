@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getChallenge, submitFlag } from "../api.js";
+import { getChallenge, listHints, submitFlag, unlockHint } from "../api.js";
 import { CATEGORY_LABELS } from "./ChallengeList.jsx";
 
 export default function ChallengeDetail({ token, challengeId, onBack }) {
@@ -9,6 +9,10 @@ export default function ChallengeDetail({ token, challengeId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [hints, setHints] = useState([]);
+  const [hintsError, setHintsError] = useState("");
+  const [hintNotice, setHintNotice] = useState("");
+  const [unlockingId, setUnlockingId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -16,6 +20,9 @@ export default function ChallengeDetail({ token, challengeId, onBack }) {
     setError("");
     setResult(null);
     setFlag("");
+    setHints([]);
+    setHintsError("");
+    setHintNotice("");
     getChallenge(challengeId, token)
       .then((data) => {
         if (!cancelled) setChallenge(data);
@@ -26,10 +33,38 @@ export default function ChallengeDetail({ token, challengeId, onBack }) {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    listHints(challengeId, token)
+      .then((data) => {
+        if (!cancelled) setHints(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setHintsError(err.message || "Could not load hints");
+      });
     return () => {
       cancelled = true;
     };
   }, [token, challengeId]);
+
+  async function handleUnlock(hint) {
+    setUnlockingId(hint.id);
+    setHintNotice("");
+    setHintsError("");
+    try {
+      const data = await unlockHint(challengeId, hint.id, token);
+      setHints((list) =>
+        list.map((h) => (h.id === hint.id ? { ...h, unlocked: true, text: data.hint.text } : h))
+      );
+      setHintNotice(
+        data.alreadyUnlocked
+          ? "Hint already unlocked."
+          : `Hint unlocked — ${data.pointsDeducted} points off your team's score (${data.remainingScore} left).`
+      );
+    } catch (err) {
+      setHintsError(err.message || "Could not unlock that hint");
+    } finally {
+      setUnlockingId(null);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -113,6 +148,45 @@ export default function ChallengeDetail({ token, challengeId, onBack }) {
           </a>
         </p>
       )}
+      <div>
+        <h3>Hints</h3>
+        {hintsError && <p className="error">{hintsError}</p>}
+        {hintNotice && <p className="success">{hintNotice}</p>}
+        {hints.length === 0 ? (
+          <p className="muted">No hints for this challenge yet.</p>
+        ) : (
+          <>
+            <p className="muted">
+              Unlocking a hint takes points off your team&apos;s score — use
+              them wisely.
+            </p>
+            <ul className="hint-list">
+              {hints.map((hint, i) => (
+                <li key={hint.id} className="hint-row">
+                  <div>
+                    <strong>Hint {i + 1}</strong>{" "}
+                    <span className="muted">· {hint.cost} pts</span>
+                    {hint.unlocked ? (
+                      <p>{hint.text}</p>
+                    ) : (
+                      <p className="muted">Locked — unlock it to see the hint.</p>
+                    )}
+                  </div>
+                  {!hint.unlocked && (
+                    <button
+                      type="button"
+                      onClick={() => handleUnlock(hint)}
+                      disabled={unlockingId === hint.id}
+                    >
+                      {unlockingId === hint.id ? "Unlocking…" : `Unlock for ${hint.cost} pts`}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
       {!challenge.solved && (
         <form onSubmit={handleSubmit}>
           <div>

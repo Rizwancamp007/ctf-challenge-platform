@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import {
   createChallenge,
   deleteChallenge,
+  fetchContainerStatus,
   listChallenges,
   updateChallenge,
 } from "../api.js";
+import AdminHints from "./AdminHints.jsx";
 import { CATEGORY_LABELS } from "./ChallengeList.jsx";
 
 const EMPTY_FORM = {
@@ -69,6 +71,10 @@ export default function AdminChallenges({ token }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [openHintsId, setOpenHintsId] = useState(null);
+  const [containers, setContainers] = useState([]);
+  const [containersLoading, setContainersLoading] = useState(false);
+  const [containersError, setContainersError] = useState("");
 
   async function refresh() {
     setLoading(true);
@@ -81,8 +87,21 @@ export default function AdminChallenges({ token }) {
     }
   }
 
+  async function refreshContainers() {
+    setContainersLoading(true);
+    setContainersError("");
+    try {
+      setContainers(await fetchContainerStatus(token));
+    } catch (err) {
+      setContainersError(err.message || "Could not check containers");
+    } finally {
+      setContainersLoading(false);
+    }
+  }
+
   useEffect(() => {
     refresh();
+    refreshContainers();
   }, [token]);
 
   function setField(field, value) {
@@ -297,6 +316,44 @@ export default function AdminChallenges({ token }) {
         )}
       </form>
       {loading && <p className="muted">Loading challenges…</p>}
+      <h3>Challenge containers</h3>
+      {containersError && <p className="error">{containersError}</p>}
+      {containersLoading && <p className="muted">Checking containers…</p>}
+      <ul className="admin-list">
+        {containers.map((container) => (
+          <li key={container.challengeId} className="admin-row">
+            <div>
+              <strong>{container.title}</strong>{" "}
+              {container.url ? (
+                <span className="muted">{container.url} · </span>
+              ) : (
+                <span className="muted">No service set · </span>
+              )}
+              <span
+                className={
+                  container.status === "up"
+                    ? "success"
+                    : container.status === "down"
+                      ? "error"
+                      : "muted"
+                }
+              >
+                {container.status === "up"
+                  ? "Up"
+                  : container.status === "down"
+                    ? "Down"
+                    : "Not configured"}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {containers.length === 0 && !containersLoading && (
+        <p className="muted">No challenges yet.</p>
+      )}
+      <button type="button" onClick={refreshContainers} disabled={containersLoading}>
+        {containersLoading ? "Checking…" : "Refresh container status"}
+      </button>
       <ul className="admin-list">
         {challenges.map((challenge) => (
           <li key={challenge.id} className="admin-row">
@@ -310,6 +367,14 @@ export default function AdminChallenges({ token }) {
               </span>
             </div>
             <div>
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenHintsId((id) => (id === challenge.id ? null : challenge.id))
+                }
+              >
+                {openHintsId === challenge.id ? "Hide hints" : "Hints"}
+              </button>{" "}
               <button type="button" onClick={() => startEdit(challenge)}>
                 Edit
               </button>{" "}
@@ -317,6 +382,9 @@ export default function AdminChallenges({ token }) {
                 {confirmDeleteId === challenge.id ? "Click again to confirm" : "Delete"}
               </button>
             </div>
+            {openHintsId === challenge.id && (
+              <AdminHints token={token} challengeId={challenge.id} />
+            )}
           </li>
         ))}
       </ul>

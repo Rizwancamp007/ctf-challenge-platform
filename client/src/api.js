@@ -80,6 +80,38 @@ export function submitFlag(id, flag, token) {
   return request("POST", `/api/challenges/${id}/submit`, { flag }, token);
 }
 
+export function listHints(id, token) {
+  return request("GET", `/api/challenges/${id}/hints`, undefined, token).then(
+    (d) => d.hints
+  );
+}
+
+export function createHint(id, data, token) {
+  return request("POST", `/api/challenges/${id}/hints`, data, token).then(
+    (d) => d.hint
+  );
+}
+
+export function updateHint(id, hintId, data, token) {
+  return request("PUT", `/api/challenges/${id}/hints/${hintId}`, data, token).then(
+    (d) => d.hint
+  );
+}
+
+export function deleteHint(id, hintId, token) {
+  return request("DELETE", `/api/challenges/${id}/hints/${hintId}`, undefined, token);
+}
+
+export function unlockHint(id, hintId, token) {
+  return request("POST", `/api/challenges/${id}/hints/${hintId}/unlock`, {}, token);
+}
+
+export function fetchContainerStatus(token) {
+  return request("GET", "/api/containers", undefined, token).then(
+    (d) => d.containers
+  );
+}
+
 export function fetchLeaderboard(token) {
   return request("GET", "/api/leaderboard", undefined, token);
 }
