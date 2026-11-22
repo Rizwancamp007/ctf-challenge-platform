@@ -2,8 +2,9 @@ import { rankStandings } from "./scoring.js";
 
 // Totals are recomputed from the solve records on every read, so they
 // can never drift from what was actually solved. A solver is a team
-// once teams exist, otherwise the player solving alone.
-export function computeStandings(solves) {
+// once teams exist, otherwise the player solving alone. Hint costs come
+// off the total — a hint is paid for out of the points already earned.
+export function computeStandings(solves, deductions = new Map()) {
   const bySolver = new Map();
   for (const solve of solves) {
     const solverId = String(solve.teamId || solve.userId || solve.user);
@@ -13,6 +14,7 @@ export function computeStandings(solves) {
       points: 0,
       solves: 0,
       firstBloods: 0,
+      hintCosts: 0,
       lastSolveAt: solve.createdAt,
     };
     entry.points += points;
@@ -23,7 +25,24 @@ export function computeStandings(solves) {
     }
     bySolver.set(solverId, entry);
   }
+  for (const [solverId, cost] of deductions) {
+    const entry = bySolver.get(String(solverId));
+    if (entry) {
+      entry.hintCosts += cost;
+      entry.points -= cost;
+    }
+  }
   return rankStandings([...bySolver.values()]);
+}
+
+// Total hint spend per solver, from the unlock records.
+export function computeHintCosts(unlocks) {
+  const bySolver = new Map();
+  for (const unlock of unlocks || []) {
+    const solverId = String(unlock.teamId || unlock.userId || unlock.user);
+    bySolver.set(solverId, (bySolver.get(solverId) || 0) + (unlock.cost || 0));
+  }
+  return bySolver;
 }
 
 // Points and solves per category, per solver — so the board can show
@@ -51,9 +70,13 @@ export function computeBreakdown(solves, challengeById) {
 // solves under its old name.
 export async function describeStandings(
   solves,
-  { teamStore, userStore, challengeStore } = {}
+  { teamStore, userStore, challengeStore, hintStore } = {}
 ) {
-  const standings = computeStandings(solves);
+  let deductions = new Map();
+  if (hintStore) {
+    deductions = computeHintCosts(await hintStore.listUnlocks());
+  }
+  const standings = computeStandings(solves, deductions);
   let challengeById = new Map();
   if (challengeStore) {
     const all = await challengeStore.list({ includeHidden: true });

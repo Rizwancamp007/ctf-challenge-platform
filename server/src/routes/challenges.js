@@ -104,7 +104,16 @@ function validateChallengeInput(body, { flagRequired }) {
   return { data, flagHash, errors };
 }
 
-export function createChallengesRouter({ challenges, solves, teamStore, limiter, store, live } = {}) {
+export function createChallengesRouter({
+  challenges,
+  solves,
+  teamStore,
+  limiter,
+  store,
+  live,
+  hints,
+  unlocks,
+} = {}) {
   const router = express.Router();
   const guessLimiter = limiter || createGuessLimiter();
 
@@ -213,6 +222,8 @@ export function createChallengesRouter({ challenges, solves, teamStore, limiter,
       const challenge = await challenges.findById(req.params.id);
       if (!challenge) return res.status(404).json({ message: "Challenge not found" });
       await solves.removeForChallenge(req.params.id);
+      if (unlocks) await unlocks.removeForChallenge(req.params.id);
+      if (hints) await hints.removeForChallenge(req.params.id);
       await challenges.remove(req.params.id);
       return res.json({ message: "Challenge deleted" });
     })
@@ -271,7 +282,12 @@ export function createChallengesRouter({ challenges, solves, teamStore, limiter,
       const award = pointsForSolve({ basePoints: challenge.points, solveCount });
       // The board before this solve, so the live feed can say who moved.
       const describe = (list) =>
-        describeStandings(list, { teamStore, userStore: store, challengeStore: challenges });
+        describeStandings(list, {
+          teamStore,
+          userStore: store,
+          challengeStore: challenges,
+          hintStore: unlocks,
+        });
       const before = live ? await describe(await solves.listSolves()) : null;
       const solve = await solves.recordSolve({
         challengeId,

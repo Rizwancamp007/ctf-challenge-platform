@@ -12,13 +12,19 @@ export function createLeaderboardRouter({
   store,
   teamStore,
   challengeStore,
+  hintStore,
   live,
 }) {
   const router = express.Router();
 
   async function standings() {
     const all = await solves.listSolves();
-    return describeStandings(all, { teamStore, userStore: store, challengeStore });
+    return describeStandings(all, {
+      teamStore,
+      userStore: store,
+      challengeStore,
+      hintStore,
+    });
   }
 
   router.get(
