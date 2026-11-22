@@ -32,5 +32,35 @@ services:
     depends_on:
       - api
 
+  # Bundled containerised web challenges — one shared instance per
+  # challenge. Flags come from the compose .env, never from the image.
+  web-hidden-flag:
+    build: ./docker/web-hidden-flag
+    restart: unless-stopped
+    ports:
+      - "8081:3000"
+    environment:
+      - PORT=3000
+      - FLAG=${WEB_HIDDEN_FLAG}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  web-source-leak:
+    build: ./docker/web-source-leak
+    restart: unless-stopped
+    ports:
+      - "8082:3000"
+    environment:
+      - PORT=3000
+      - FLAG=${WEB_SOURCE_LEAK_FLAG}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
 volumes:
   mongo-data:
