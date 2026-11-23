@@ -21,6 +21,7 @@ export function createApp({
   hintStore,
   unlockStore,
   live,
+  authLimiter,
 } = {}) {
   const users = store || createMemoryStore();
   const challenges = challengeStore || createMemoryChallengeStore();
@@ -42,7 +43,7 @@ export function createApp({
     res.json({ message: "CTF Challenge Platform API" });
   });
 
-  app.use("/api/auth", createAuthRouter(users));
+  app.use("/api/auth", createAuthRouter(users, { authLimiter }));
   app.use(
     "/api/challenges",
     createChallengesRouter({

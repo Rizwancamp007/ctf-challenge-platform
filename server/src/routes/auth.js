@@ -2,14 +2,31 @@ import express from "express";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { checkPassword, hashPassword, signToken } from "../services/auth.js";
+import { createAuthLimiter } from "../services/authLimiter.js";
 import { publicUser } from "../store/users.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Public sign-up always creates a player. Admin accounts come from the
 // seed script only — nobody can give themselves admin by asking for it.
-export function createAuthRouter(store) {
+export function createAuthRouter(store, { authLimiter } = {}) {
   const router = express.Router();
+  const limiter = authLimiter || createAuthLimiter();
+
+  // Too many sign-in attempts from one address earns a short wait.
+  function limitAttempts(req, res, email) {
+    const key = `${req.ip || "unknown"}:${email.toLowerCase()}`;
+    const result = limiter.check(key);
+    if (!result.allowed) {
+      res.set("Retry-After", String(Math.ceil(result.retryAfterMs / 1000)));
+      res.status(429).json({
+        message: "Too many attempts — please wait a bit and try again",
+        retryAfterSeconds: Math.ceil(result.retryAfterMs / 1000),
+      });
+      return false;
+    }
+    return true;
+  }
 
   router.post(
     "/register",
@@ -18,6 +35,7 @@ export function createAuthRouter(store) {
       const email =
         typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
       const password = typeof req.body?.password === "string" ? req.body.password : "";
+      if (!limitAttempts(req, res, email)) return;
       if (!name) return res.status(400).json({ message: "Name is required" });
       if (!EMAIL_RE.test(email)) {
         return res.status(400).json({ message: "Enter a valid email" });
@@ -51,6 +69,7 @@ export function createAuthRouter(store) {
       const email =
         typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
       const password = typeof req.body?.password === "string" ? req.body.password : "";
+      if (!limitAttempts(req, res, email)) return;
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
       }

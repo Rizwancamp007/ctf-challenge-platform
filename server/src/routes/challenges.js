@@ -57,6 +57,12 @@ function validateChallengeInput(body, { flagRequired }) {
           errors.push("Each file needs a name and a URL");
           break;
         }
+        // Files are links to hosted downloads, not uploads — only plain
+        // web links are accepted, nothing that could run code in a browser.
+        if (!/^https?:\/\//i.test(url)) {
+          errors.push("File URLs must start with http:// or https://");
+          break;
+        }
         files.push({ name, url });
       }
       if (!errors.length) data.files = files;
