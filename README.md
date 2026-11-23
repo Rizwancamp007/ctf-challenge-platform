@@ -42,12 +42,29 @@ containerised challenges.
 | `WEB_HIDDEN_FLAG` / `WEB_SOURCE_LEAK_FLAG` | Flags for the bundled containerised web challenges (compose `.env` only) |
 | `DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD` | Demo admin account, used by `npm run seed` |
 | `DEMO_PLAYER_EMAIL` / `DEMO_PLAYER_PASSWORD` | Demo player account, used by `npm run seed` |
+| `DEMO_FLAG_CRYPTO` / `DEMO_FLAG_WEB` / `DEMO_FLAG_REVERSE` / `DEMO_FLAG_MISC` | Flags for the demo challenges, used by `npm run seed` |
 
 ## Demo accounts
 
 Set the `DEMO_*` variables in your local `.env` (or in deployment config)
 and run `npm run seed` from `server/`. Demo credentials live only in
-environment variables — never in the repo.
+environment variables — never in the repo. The seed also creates one demo
+challenge per category (flags from `DEMO_FLAG_CRYPTO`, `DEMO_FLAG_WEB`,
+`DEMO_FLAG_REVERSE` and `DEMO_FLAG_MISC`) and two demo teams, so the
+leaderboard has something to show before real teams sign up. Running the
+seed again is safe — anything that already exists is skipped.
+
+## Try it out
+
+1. Sign in as the demo player and create a team — the invite code is on
+   the Team page. Have a friend join with that code, or open a second
+   browser and join as the demo admin's team instead.
+2. Pick a category — crypto, web, or reverse engineering — open a
+   challenge, find the flag, and submit it. Watch your team climb the
+   live leaderboard.
+3. Stuck? Unlock a hint — it costs a few points, so use it wisely.
+4. As the demo admin, create a challenge of your own, add a hint to it,
+   and freeze the scoreboard while the event is still running.
 
 ## Teams
 
