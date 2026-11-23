@@ -168,6 +168,14 @@ describe("challenge admin", () => {
     const { flag, ...noFlag } = cryptoChallenge;
     const missingFlag = await req("POST", "/api/challenges", noFlag, adminToken);
     assert.equal(missingFlag.status, 400);
+
+    const badFileUrl = await req(
+      "POST",
+      "/api/challenges",
+      { ...cryptoChallenge, files: [{ name: "notes.txt", url: "javascript:alert(1)" }] },
+      adminToken
+    );
+    assert.equal(badFileUrl.status, 400);
   });
 
   test("admin can update a challenge and rotate its flag", async () => {

@@ -180,3 +180,60 @@ describe("auth", () => {
     assert.equal(body.message, "Not found");
   });
 });
+
+describe("auth rate limiting", () => {
+  let limitedBase;
+  let limitedServer;
+
+  before(async () => {
+    const { createAuthLimiter } = await import("../src/services/authLimiter.js");
+    const app = createApp({
+      store: createMemoryStore(),
+      authLimiter: createAuthLimiter({ windowMs: 60_000, max: 3 }),
+    });
+    await new Promise((resolve) => {
+      limitedServer = app.listen(0, () => {
+        limitedBase = `http://127.0.0.1:${limitedServer.address().port}`;
+        resolve();
+      });
+    });
+  });
+
+  after(async () => {
+    await new Promise((resolve) => limitedServer.close(resolve));
+  });
+
+  test("repeated login attempts from one address are refused after the cap", async () => {
+    for (let i = 0; i < 3; i++) {
+      const attempt = await post(`${limitedBase}/api/auth/login`, {
+        email: "guess@example.com",
+        password: "wrongpass1",
+      });
+      assert.equal(attempt.status, 401);
+    }
+    const blocked = await post(`${limitedBase}/api/auth/login`, {
+      email: "guess@example.com",
+      password: "wrongpass1",
+    });
+    assert.equal(blocked.status, 429);
+    assert.equal(typeof blocked.body.retryAfterSeconds, "number");
+  });
+
+  test("repeated sign-ups from one address are refused after the cap", async () => {
+    for (let i = 0; i < 3; i++) {
+      const attempt = await post(`${limitedBase}/api/auth/register`, {
+        name: `Tester ${i}`,
+        email: "signup@example.com",
+        password: "testpass1",
+      });
+      // First sign-up succeeds, the rest are duplicates — both count.
+      assert.ok(attempt.status === 201 || attempt.status === 409);
+    }
+    const blocked = await post(`${limitedBase}/api/auth/register`, {
+      name: "Tester",
+      email: "signup@example.com",
+      password: "testpass1",
+    });
+    assert.equal(blocked.status, 429);
+  });
+});
